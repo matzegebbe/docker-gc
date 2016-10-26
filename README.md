@@ -1,7 +1,7 @@
 # example
 
 ```bash
-docker run --rm -v /var/run/docker.sock:/var/run/docker.sock spotify/docker-gc bash -c "DRY_RUN=1 ./docker-gc"
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock matzeihn/docker-gc bash -c "DRY_RUN=1 ./docker-gc"
 ```
 
 # docker-gc
