@@ -1,11 +1,13 @@
 # example
 
+edit docker-gc-exclude-containers to exclude container. This will remove images and containers older than one week (dry-run).
+
 ```bash
-docker run --rm -v /var/run/docker.sock:/var/run/docker.sock matzeihn/docker-gc bash -c "DRY_RUN=1 ./docker-gc"
+docker run --rm -v `pwd`/docker-gc-exclude-containers:/etc/docker-gc-exclude-containers -v /var/run/docker.sock:/var/run/docker.sock matzeihn/docker-gc bash -c "GRACE_PERIOD_SECONDS=604800 DRY_RUN=1 ./docker-gc"
 ```
 
 # docker-gc
-
+ 
 * [Building](#building)
 * [Installing](#installing)
 * [Usage](#usage)
