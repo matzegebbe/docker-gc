@@ -130,6 +130,11 @@ RES=$(eval $FULL_COMMAND)
 if [ "$?" -eq 0 ]; then
    DF_AFTER=`df -h`
    MAIL_SUBJECT="$HOSTNAME DockerGC"
+
+   if [ $DRY_RUN -eq 1 ]; then
+        MAIL_SUBJECT+=" (Dry run)"
+   fi
+
    TMP_FILE=/tmp/docker-gc-mail-body.tmp
    > $TMP_FILE
    printf "Command executed: %s\n\n" "$FULL_COMMAND" >> $TMP_FILE;
