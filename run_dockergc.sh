@@ -11,6 +11,20 @@ function sendMail() {
   echo "$2" | mutt -s "$1" "$RECIPIENTS"
 }
 
+function sendMailFromFile() {
+  if [ ! -f "$MAIL_RECIPIENTS" ]; then
+      mutt -s "$1" "snemeth@hu.hellmann.net" < $2
+      exit 1;
+  fi
+
+  while IFS='' read -r line || [[ -n "$line" ]]; do
+    RECIPIENTS+="$line",
+  done < $MAIL_RECIPIENTS
+  mutt -s "$1" "$RECIPIENTS" < $2
+}
+
+
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
@@ -35,8 +49,8 @@ do
         --exclude-dead-containers)
         EXCLUDE_DEAD="1"
         ;;
-        --dry-run)
-        DRY_RUN="1"
+        --doit)
+        DRY_RUN="0"
         ;;
         *)
         # unknown option
@@ -84,7 +98,7 @@ echo -n "DRY RUN: "
 if [ ! -z "$DRY_RUN" ]; then
     echo "${DRY_RUN}"
 else
-    DRY_RUN="0";
+    DRY_RUN="1";
     echo "$DRY_RUN (default)"
 fi
 
@@ -96,24 +110,42 @@ if [[ ! -f "$DGCEXCLUDE" ]] || [[ ! -f "$MAIL_RECIPIENTS" ]]; then
 fi
 #END OF PARAMETER VALIDATION
 
-#PREPARE DOCKER_GC COMMAND
-DOCKER_GC_COMMAND="GRACE_PERIOD_SECONDS=$GRACE_PERIOD_SECONDS EXCLUDE_DEAD=$EXCLUDE_DEAD"
+#PREPARE DOCKER_GC_SUBSHELL_COMMAND
+DOCKER_GC_SUBSHELL_COMMAND="GRACE_PERIOD_SECONDS=$GRACE_PERIOD_SECONDS EXCLUDE_DEAD=$EXCLUDE_DEAD"
 if [ $DRY_RUN -eq 1 ]; then
-    DOCKER_GC_COMMAND=$DOCKER_GC_COMMAND" DRY_RUN=$DRY_RUN"
+    DOCKER_GC_SUBSHELL_COMMAND+=" DRY_RUN=$DRY_RUN"
 fi
-DOCKER_GC_COMMAND=$DOCKER_GC_COMMAND" ./docker-gc"
+DOCKER_GC_SUBSHELL_COMMAND+=" ./docker-gc"
 
 DF_BEFORE=`df -h`
 
-RES=`docker run --rm -v $DGCEXCLUDE:/etc/docker-gc-exclude-containers \
--v /var/run/docker.sock:/var/run/docker.sock matzeihn/docker-gc \
-bash -c "$DOCKER_GC_COMMAND"`
+read -d '' FULL_COMMAND << EOF
+docker run --rm -v $DGCEXCLUDE:/etc/docker-gc-exclude-containers
+-v /var/run/docker.sock:/var/run/docker.sock matzeihn/docker-gc
+bash -c "$DOCKER_GC_SUBSHELL_COMMAND"
+EOF
+
+RES=$(eval $FULL_COMMAND)
 
 if [ "$?" -eq 0 ]; then
    DF_AFTER=`df -h`
-   sendMail "$HOSTNAME DockerGC" "Disk usage before:"$'\n\n'"$DF_BEFORE"$'\n\n'"Disk usage after:"$'\n\n'"$DF_AFTER"$'\n\n'"Result of script:"$'\n\n'"$RES"
+   MAIL_SUBJECT="$HOSTNAME DockerGC"
+
+   if [ $DRY_RUN -eq 1 ]; then
+        MAIL_SUBJECT+=" (Dry run)"
+   fi
+
+   TMP_FILE=/tmp/docker-gc-mail-body.tmp
+   > $TMP_FILE
+   printf "Command executed: %s\n\n" "$FULL_COMMAND" >> $TMP_FILE;
+   printf "Disk usage before: \n\n%s\n\n" "$DF_BEFORE" >> $TMP_FILE;
+   printf "Disk usage after: \n\n%s\n\n" "$DF_AFTER" >> $TMP_FILE;
+   printf "Result of script: \n\n%s" "$RES" >> $TMP_FILE;
+
+   sendMailFromFile "$MAIL_SUBJECT" $TMP_FILE
    exit 0;
 else
    sendMail "Error $HOSTNAME DockerGC" $"$RES"
    exit 1;
 fi
+
