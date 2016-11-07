@@ -6,6 +6,12 @@ edit docker-gc-exclude-containers to exclude container. This will remove images 
 docker run --rm -v `pwd`/docker-gc-exclude-containers:/etc/docker-gc-exclude-containers -v /var/run/docker.sock:/var/run/docker.sock matzeihn/docker-gc bash -c "GRACE_PERIOD_SECONDS=604800 DRY_RUN=1 ./docker-gc"
 ```
 
+# crontab example with script 
+
+(mail+mutt should be installed)
+
+0  4    * * *   root    /home/docker/docker-gc/run_dockergc.sh --doit > /dev/null 2>&1
+
 # docker-gc
  
 * [Building](#building)
