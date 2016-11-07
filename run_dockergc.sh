@@ -2,7 +2,7 @@
 
 function sendMail() {
   if [ ! -f "$MAIL_RECIPIENTS" ]; then
-      echo "$2" | mutt -s "$1" "snemeth@hu.hellmann.net"
+      echo "$2" | mutt -s "$1" "test@example.com"
       exit 1;
   fi
   while IFS='' read -r line || [[ -n "$line" ]]; do
@@ -13,7 +13,7 @@ function sendMail() {
 
 function sendMailFromFile() {
   if [ ! -f "$MAIL_RECIPIENTS" ]; then
-      mutt -s "$1" "snemeth@hu.hellmann.net" < $2
+      mutt -s "$1" "test@example.com" < $2
       exit 1;
   fi
 
